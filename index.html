@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MindBloom - Mental Wellness</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Pacifico&family=Poppins:wght@300;400;600&display=swap');
+  :root {
+    --bg-1: #89f7fe; --bg-2: #66a6ff;
+    --accent: #5e60ce;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Poppins',sans-serif;background:linear-gradient(135deg,var(--bg-1),var(--bg-2));color:#333;min-height:100vh;}
+  header{text-align:center;padding:30px 10px;}
+  header h1{font-family:'Pacifico',cursive;font-size:3rem;color:var(--accent);}
+  .nav{display:flex;justify-content:center;gap:15px;margin:20px 0;}
+  .nav button{padding:10px 20px;border:none;border-radius:10px;background:rgba(255,255,255,0.7);cursor:pointer;transition:0.3s;}
+  .nav button.active{background:var(--accent);color:white;}
+  .page{display:none;padding:20px;max-width:700px;margin:0 auto;}
+  .page.active{display:block;}
+  .card{background:rgba(255,255,255,0.92);border-radius:20px;padding:20px;margin:15px 0;box-shadow:0 10px 30px rgba(0,0,0,0.1);}
+  button{cursor:pointer;transition:0.3s;}
+  button:hover{opacity:0.85;}
+  input, select, textarea{width:100%;padding:10px;margin:10px 0;border-radius:10px;border:1px solid #ccc;}
+  .entry-item{padding:10px;border-bottom:1px solid #ccc;}
+  canvas{width:100%;height:200px;margin-top:15px;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>MindBloom</h1>
+  <p>Everything will be okay — let's check in together.</p>
+</header>
+
+<div class="nav">
+  <button data-page="home" class="active">Home</button>
+  <button data-page="mood">Mood Tracker</button>
+  <button data-page="journal">Journal</button>
+  <button data-page="boost">Mood Boost</button>
+</div>
+
+<!-- Home Page -->
+<section id="home" class="page active">
+  <div class="card">
+    <h2>Welcome to MindBloom</h2>
+    <p>Track your moods, write your thoughts, and get motivational boosts every day.</p>
+    <button id="startBtn">Start Your Journey</button>
+  </div>
+</section>
+
+<!-- Mood Tracker -->
+<section id="mood" class="page">
+  <div class="card">
+    <h2>Mood Tracker</h2>
+    <select id="moodSelect">
+      <option value="">Select Mood (1-5)</option>
+      <option value="1">😢 Very Sad</option>
+      <option value="2">😟 Sad</option>
+      <option value="3">😐 Neutral</option>
+      <option value="4">🙂 Happy</option>
+      <option value="5">😄 Very Happy</option>
+    </select>
+    <input type="text" id="botherInput" placeholder="What's bothering you?">
+    <textarea id="moodNote" placeholder="Additional notes"></textarea>
+    <button id="saveMoodBtn">Save Mood</button>
+    <button id="analyzeBtn">Analyze Mood</button>
+    <div id="analysisBox" class="card" style="display:none;"></div>
+    <div id="entriesList" class="card"></div>
+    <canvas id="trendCanvas"></canvas>
+  </div>
+</section>
+
+<!-- Journal -->
+<section id="journal" class="page">
+  <div class="card">
+    <h2>Journal</h2>
+    <textarea id="journalText" placeholder="Write your thoughts..."></textarea>
+    <button id="saveJournalBtn">Save Entry</button>
+    <div id="journalList" class="card"></div>
+  </div>
+</section>
+
+<!-- Mood Boost -->
+<section id="boost" class="page">
+  <div class="card">
+    <h2>Mood Boost</h2>
+    <button id="boostBtn">Give me a Boost</button>
+    <div id="boostMsg" class="card" style="display:none;"></div>
+    <div id="boostActivity" class="card" style="display:none;"></div>
+    <div id="boostSong" class="card" style="display:none;"></div>
+  </div>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// --- Navigation ---
+const pages = document.querySelectorAll('.page');
+const navButtons = document.querySelectorAll('.nav button');
+navButtons.forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    pages.forEach(p=>p.classList.toggle('active', p.id===btn.dataset.page));
+    navButtons.forEach(b=>b.classList.toggle('active', b===btn));
+  });
+});
+
+// --- Start Button ---
+document.getElementById('startBtn').addEventListener('click', ()=> document.querySelector('[data-page="mood"]').click());
+
+// --- Mood Tracker (localStorage for now) ---
+const entriesList = document.getElementById('entriesList');
+const trendCanvas = document.getElementById('trendCanvas');
+
+function readMoods(){return JSON.parse(localStorage.getItem('mindbloom_moods')||'[]');}
+function writeMoods(arr){localStorage.setItem('mindbloom_moods', JSON.stringify(arr));}
+
+function saveMood(){
+  const mood = parseInt(document.getElementById('moodSelect').value);
+  const note = document.getElementById('moodNote').value.trim();
+  const bother = document.getElementById('botherInput').value.trim();
+  if(!mood){alert('Select a mood');return;}
+  const arr = readMoods();
+  arr.push({date:new Date().toLocaleString(), mood, note, bother});
+  writeMoods(arr);
+  document.getElementById('moodSelect').value='';
+  document.getElementById('moodNote').value='';
+  document.getElementById('botherInput').value='';
+  renderMoods();
+}
+
+function renderMoods(){
+  const arr = readMoods();
+  entriesList.innerHTML='';
+  arr.slice().reverse().forEach(m=>{
+    const div=document.createElement('div'); div.className='entry-item';
+    div.textContent=`${m.date} - Mood: ${m.mood} ${m.note||''} ${m.bother||''}`;
+    entriesList.appendChild(div);
+  });
+  const labels = arr.map(x=>x.date);
+  const data = arr.map(x=>x.mood);
+  if(window.trendChart) window.trendChart.destroy();
+  window.trendChart = new Chart(trendCanvas.getContext('2d'), {
+    type:'line',
+    data:{labels,datasets:[{label:'Mood', data, borderColor:'#5e60ce', backgroundColor:'rgba(94,96,206,0.14)', fill:true, tension:0.25}]},
+    options:{scales:{y:{min:1,max:5,ticks:{stepSize:1}}}}
+  });
+}
+
+document.getElementById('saveMoodBtn').addEventListener('click', saveMood);
+renderMoods();
+
+// --- Mood Analysis ---
+document.getElementById('analyzeBtn').addEventListener('click', ()=>{
+  const text = document.getElementById('botherInput').value.toLowerCase();
+  if(!text){alert('Write what is bothering you');return;}
+  const box = document.getElementById('analysisBox');
+  let summary='General mood', suggestion='Take a short break or write your thoughts.';
+  if(text.includes('exam')||text.includes('study')){summary='Academic stress'; suggestion='Break tasks into small steps.';}
+  else if(text.includes('friend')||text.includes('alone')){summary='Relationship'; suggestion='Reach out or journal about it.';}
+  box.style.display='block';
+  box.innerHTML=`<strong>${summary}</strong><p>${suggestion}</p>`;
+});
+
+// --- Journal ---
+const journalList = document.getElementById('journalList');
+function readJournals(){return JSON.parse(localStorage.getItem('mindbloom_journals')||'[]');}
+function writeJournals(arr){localStorage.setItem('mindbloom_journals', JSON.stringify(arr));}
+
+function saveJournal(){
+  const txt = document.getElementById('journalText').value.trim();
+  if(!txt){alert('Write something'); return;}
+  const arr = readJournals();
+  arr.push({date:new Date().toLocaleString(), text:txt});
+  writeJournals(arr);
+  document.getElementById('journalText').value='';
+  renderJournals();
+}
+
+function renderJournals(){
+  const arr = readJournals();
+  journalList.innerHTML='';
+  arr.slice().reverse().forEach(j=>{
+    const div=document.createElement('div'); div.className='entry-item';
+    div.textContent=`${j.date} - ${j.text}`;
+    journalList.appendChild(div);
+  });
+}
+document.getElementById('saveJournalBtn').addEventListener('click', saveJournal);
+renderJournals();
+
+// --- Mood Boost ---
+const messages=["You are stronger than you think.","Breathe. One step at a time.","Small steps are progress.","You are not alone."];
+const activities=["Stretch for 2 min.","Step outside.","Write one line of thanks.","Dance to a song."];
+const songs=["'Best Day of My Life' — American Authors","'Can't Stop the Feeling!' — Justin Timberlake"];
+document.getElementById('boostBtn').addEventListener('click', ()=>{
+  const m=document.getElementById('boostMsg'); const a=document.getElementById('boostActivity'); const s=document.getElementById('boostSong');
+  m.style.display=a.style.display=s.style.display='block';
+  m.innerHTML=`<strong>Message:</strong> ${messages[Math.floor(Math.random()*messages.length)]}`;
+  a.innerHTML=`<strong>Activity:</strong> ${activities[Math.floor(Math.random()*activities.length)]}`;
+  s.innerHTML=`<strong>Song:</strong> ${songs[Math.floor(Math.random()*songs.length)]}`;
+});
+</script>
+
+</body>
+</html>
