@@ -1,20 +1,27 @@
+// src/firebase.js
 
+// Import required Firebase modules
 import { initializeApp } from "firebase/app";
-import {getFirestore} from 'firebase/firestore'
+import { getAuth, GoogleAuthProvider } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 
-
-
+// ✅ Replace these with your actual Firebase credentials
 const firebaseConfig = {
-  apiKey: "AIzaSyAKHdEK5djlWb72TCVlTxUH_X5oyY80Un8",
-  authDomain: "mental-wellness-journal-69145.firebaseapp.com",
-  projectId: "mental-wellness-journal-69145",
-  storageBucket: "mental-wellness-journal-69145.firebasestorage.app",
-  messagingSenderId: "206751818241",
-  appId: "1:206751818241:web:c7bd3b6e9bec6bf9e25600"
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+  appId: "YOUR_APP_ID",
 };
 
-
+// Initialize Firebase app
 const app = initializeApp(firebaseConfig);
-const db=getFirestore(app)
 
-export {db}
+// Initialize services
+const auth = getAuth(app);
+const db = getFirestore(app);
+const provider = new GoogleAuthProvider();
+
+// Export for use in other files
+export { auth, db, provider };
